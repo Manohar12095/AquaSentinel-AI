@@ -94,6 +94,42 @@ export default function Dashboard() {
   const fetchChartData = useCallback(() => {
     if (!selectedStation) return;
     setChartLoading(true);
+
+    const token = useAppStore.getState().token;
+    if (token === 'demo-offline-token') {
+      const hours = { '1h': 1, '6h': 6, '24h': 24, '7d': 168 }[chartRange];
+      const points = hours === 1 ? 12 : hours === 6 ? 24 : hours === 24 ? 24 : 14;
+      const now = Date.now();
+      const interval = (hours * 3600000) / points;
+      
+      const ranges: Record<string, [number, number]> = {
+        ph: [6.8, 8.2],
+        tds_ppm: [250, 450],
+        turbidity_ntu: [1.5, 6.0],
+        temp_c: [24, 29],
+      };
+      const [lo, hi] = ranges[chartParam] ?? [0, 100];
+      
+      const fakeData: Measurement[] = Array.from({ length: points + 1 }).map((_, i) => ({
+        id: i,
+        station_id: selectedStation.id,
+        device_id: null,
+        ts: new Date(now - (points - i) * interval).toISOString(),
+        parameter: chartParam,
+        value: +(lo + Math.random() * (hi - lo)).toFixed(2),
+        unit: '',
+        quality_flag: 'ok',
+        source: 'simulated'
+      }));
+
+      setTimeout(() => {
+        setChartData(fakeData);
+        setLastUpdated(Date.now());
+        setChartLoading(false);
+      }, 400);
+      return;
+    }
+
     const hours = { '1h': 1, '6h': 6, '24h': 24, '7d': 168 }[chartRange];
     const from = new Date(Date.now() - hours * 3600000).toISOString();
     api.get<Measurement[]>(
