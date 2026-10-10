@@ -40,15 +40,17 @@ function AppInner() {
     };
   }, [setIsOnline]);
 
-  // Boot: load stations and alerts
+  // Boot: load stations and alerts (skip if running in demo mode without backend)
   useEffect(() => {
-    const { dataMode } = useAppStore.getState();
+    const { dataMode, token } = useAppStore.getState();
+    if (token === 'demo-offline-token') return; // demo mode — data already loaded
     api.get(`/stations?mode=${dataMode}`).then((r) => setStations(r.data)).catch(() => {});
     api.get('/alerts?status=open').then((r) => setAlerts(r.data)).catch(() => {});
   }, [setStations, setAlerts]);
 
-  // Start SSE connection
-  useSSE();
+  // Start SSE connection (skip in demo mode)
+  const token = useAppStore((s) => s.token);
+  useSSE(token !== 'demo-offline-token');
 
   if (!isOnline) {
     return (

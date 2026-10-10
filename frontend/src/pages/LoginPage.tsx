@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/appStore';
 import { api } from '../lib/api';
 import { Droplets, Eye, EyeOff, AlertCircle, Loader } from 'lucide-react';
+import { DEMO_USERS, DEMO_STATIONS, DEMO_ALERTS, DEMO_DASHBOARD, DEMO_TOKEN } from '../lib/demoData';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('admin@aquasentinel.local');
@@ -10,8 +11,22 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [demoMode, setDemoMode] = useState(false);
   const { setAuth } = useAppStore();
   const navigate = useNavigate();
+
+  const loginWithDemoData = (userEmail: string, userPassword: string): boolean => {
+    const account = DEMO_USERS[userEmail];
+    if (!account || account.password !== userPassword) return false;
+    // Populate the store with demo data
+    const store = useAppStore.getState();
+    setAuth(DEMO_TOKEN, account.user);
+    store.setStations(DEMO_STATIONS);
+    store.setAlerts(DEMO_ALERTS);
+    store.setDashboard(DEMO_DASHBOARD);
+    store.setSseConnected(false);
+    return true;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +37,14 @@ export default function LoginPage() {
       setAuth(res.data.access_token, res.data.user);
       navigate('/dashboard');
     } catch (err: any) {
-      if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
-        setError('Cannot connect to Backend API. If you are on Vercel, you must deploy the backend to Render/Railway and set VITE_API_URL. If local, run start_aquasentinel.bat');
+      // If backend is unreachable, fall back to demo mode automatically
+      if (err.message === 'Network Error' || err.code === 'ERR_NETWORK' || !err.response) {
+        if (loginWithDemoData(email, password)) {
+          setDemoMode(true);
+          navigate('/dashboard');
+          return;
+        }
+        setError('Invalid demo credentials. Use one of the demo accounts below.');
       } else {
         const msg = err?.response?.data?.detail;
         setError(msg ?? 'Login failed. Check your credentials.');

@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../store/appStore';
 
-export function useSSE() {
+export function useSSE(enabled: boolean = true) {
   const { setSseConnected, updateStation, addAlert, setDashboard, dataMode } =
     useAppStore();
   const esRef = useRef<EventSource | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     let retryDelay = 1000;
 
     function connect() {
@@ -76,5 +77,5 @@ export function useSSE() {
       esRef.current?.close();
       setSseConnected(false);
     };
-  }, [dataMode, setSseConnected, updateStation, addAlert, setDashboard]);
+  }, [enabled, dataMode, setSseConnected, updateStation, addAlert, setDashboard]);
 }
