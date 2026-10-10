@@ -21,9 +21,13 @@ export default function LoginPage() {
       const res = await api.post('/auth/login', { email, password });
       setAuth(res.data.access_token, res.data.user);
       navigate('/dashboard');
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(msg ?? 'Login failed. Check your credentials.');
+    } catch (err: any) {
+      if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+        setError('Cannot connect to Backend API. If you are on Vercel, you must deploy the backend to Render/Railway and set VITE_API_URL. If local, run start_aquasentinel.bat');
+      } else {
+        const msg = err?.response?.data?.detail;
+        setError(msg ?? 'Login failed. Check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
