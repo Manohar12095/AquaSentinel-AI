@@ -37,8 +37,14 @@ export default function LoginPage() {
       setAuth(res.data.access_token, res.data.user);
       navigate('/dashboard');
     } catch (err: any) {
-      // If backend is unreachable, fall back to demo mode automatically
-      if (err.message === 'Network Error' || err.code === 'ERR_NETWORK' || !err.response) {
+      // If backend is unreachable (or returns 404/502 on Vercel), fall back to demo mode automatically
+      if (
+        err.message === 'Network Error' || 
+        err.code === 'ERR_NETWORK' || 
+        !err.response ||
+        err.response.status === 404 ||
+        err.response.status === 502
+      ) {
         if (loginWithDemoData(email, password)) {
           setDemoMode(true);
           navigate('/dashboard');
